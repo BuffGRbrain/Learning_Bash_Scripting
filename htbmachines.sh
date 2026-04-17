@@ -36,6 +36,7 @@ main_url="https://htbmachines.github.io/bundle.js"
 function helpPanel(){
 	echo -e "\n ${yellowColour} [+] ${endColour} ${grayColour} Use cases: ${endColour} \n"
 	echo -e "\t ${purpleColour} -n <MACHINENAME> ${endColour} ${grayColour}  Buscar por nombre de maquina, case sensitive ${endColour}"
+	echo -e "\t ${purpleColour} -i <IP> ${endColour} ${grayColour}  Buscar nombre de maquina, por ip ${endColour}"
 	echo -e "\t ${purpleColour} -u  ${endColour} ${grayColour} Actualizar el archivo de referencia ${endColour}"
 	echo -e "\t ${purpleColour} -h ${endColour} ${grayColour} Mostrar panel de ayuda ${endColour} \n "
 
@@ -89,6 +90,14 @@ function updatejsbundle(){
 
 }
 
+function searchIP(){
+	ipadd="$1";
+	echo -e "\n ${yellowColour}[+]${endColour} ${grayColour}Searching machine with IP Add: $ipadd ${endColour} \n";
+	sleep 1;
+	machinename="$( grep "ip: \"$ipadd\"" bundle.js -B 3 | head -n 1 | awk '{print$2}' | sed 's/[",]//g')"
+	searchMachine $machinename
+}
+
 #Indicadores
 declare -i parameter_counter=0 #entero declarado en 0
 declare location="$(pwd)"
@@ -96,11 +105,12 @@ declare temp_location="htbmachines_bundle"
 mkdir -p "/tmp/$temp_location"
 #Menu de inputs viables
 #: para listar varios
-while getopts "n:h:u" arg; do
+while getopts "n:i:hu" arg; do
 	case $arg in
 		n) machineName=$OPTARG; let parameter_counter+=1;;
 		h) ;; #Indicamos la funcion a llamar
 		u) let parameter_counter+=2;;
+		i) ipadd=$OPTARG; let parameter_counter+=3;; #Caracteristica de la maquina, para mostrar todas las que hagan match
 	esac
 done
 
@@ -108,6 +118,8 @@ if [ $parameter_counter -eq 1 ]; then
 	searchMachine $machineName; #TODO escribir la funcion	
 elif [ $parameter_counter -eq 2  ]; then
 	updatejsbundle;
+elif [ $parameter_counter -eq 3  ]; then
+	searchIP $ipadd; #Pensar como hacerlo como lista para poner varios filtros a la vez
 else
 	helpPanel;
 fi
