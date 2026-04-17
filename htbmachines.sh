@@ -3,18 +3,28 @@
 #Colores
 
 # Colours
-greenColour="\\e[0;32m\\033[1m"
-endColour="\\033[0m\\e[0m"
-redColour="\\e[0;31m\\033[1m"
-blueColour="\\e[0;34m\\033[1m"
-yellowColour="\\e[0;33m\\033[1m"
-purpleColour="\\e[0;35m\\033[1m"
-turquoiseColour="\\e[0;36m\\033[1m"
-grayColour="\\e[0;37m\\033[1m"
+#greenColour="\\e[0;32m\\033[1m"
+#endColour="\\033[0m\\e[0m"
+#redColour="\\e[0;31m\\033[1m"
+#blueColour="\\e[0;34m\\033[1m"
+#yellowColour="\\e[0;33m\\033[1m"
+#purpleColour="\\e[0;35m\\033[1m"
+#turquoiseColour="\\e[0;36m\\033[1m"
+#grayColour="\\e[0;37m\\033[1m"
+
+#New Colors for compatibility in bash and awk, direct byte value instead of scaped with backslash
+greenColour=$'\033[1;32m'
+endColour=$'\033[0m'
+redColour=$'\033[1;31m'
+blueColour=$'\033[1;34m'
+yellowColour=$'\033[1;33m'
+purpleColour=$'\033[1;35m'
+turquoiseColour=$'\033[1;36m'
+grayColour=$'\033[1;37m'
 
 function ctrl_c(){
 	echo -e "\n\n ${redColour}[!] Saliendo.. \n"${endColour}; #COn las llaves separamos variables de texto con caracteres especiales tambien
-	exit 1; #Codigo error de salida
+	tput cnorm && exit 1; #Codigo error de salida
 }
 
 #Capture Control C para que no se rompa el script y se cierre bien 
@@ -32,9 +42,19 @@ function helpPanel(){
 }
 
 function searchMachine(){
-	machineName="$1"
+	echo -e "\n ${yellowColour} [+] ${endColour} ${grayColour} Showing machine details... ${endColour} \n"
+	sleep 1;
+	awk "/name: \"$1\"/,/resuelta:/" bundle.js | grep -vE "id:|sku:|resuelta" | sed 's/[",^* ]//g' | awk -F: -v yellow="$yellowColour" -v gray="$grayColour" -v end="$endColour" '
+{
+    key=$1
+    sub(/^[ \t]+/, "", key)
 
-	echo "$machineName"
+    value=substr($0, index($0,$2))
+    sub(/^[ \t]+/, "", value)
+
+    printf "%s%s%s:%s%s%s\n", yellow, key, end, gray, value, end
+}';
+
 }
 
 function download_bundle(){
@@ -44,7 +64,7 @@ function download_bundle(){
 }
 
 function updatejsbundle(){
-
+	tput civis;
 	download_bundle /tmp/"$temp_location" ;	
 
 
@@ -65,6 +85,7 @@ function updatejsbundle(){
 			sleep 2;
 		fi
 	fi
+	tput cnorm;
 
 }
 
