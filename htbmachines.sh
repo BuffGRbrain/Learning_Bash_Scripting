@@ -37,6 +37,9 @@ function helpPanel(){
 	echo -e "\n ${yellowColour} [+] ${endColour} ${grayColour} Use cases: ${endColour} \n"
 	echo -e "\t ${purpleColour} -n <MACHINENAME> ${endColour} ${grayColour}  Buscar por nombre de maquina, case sensitive ${endColour}"
 	echo -e "\t ${purpleColour} -i <IP> ${endColour} ${grayColour}  Buscar nombre de maquina, por ip ${endColour}"
+	echo -e "\t ${purpleColour} -y <MACHINENAME> ${endColour} ${grayColour}  Buscar url yotube por nombre de maquina ${endColour}"
+	echo -e "\t ${purpleColour} -d <difficultad> ${endColour} ${grayColour}  Buscar máquinas por dificultad ${endColour}"
+	echo -e "\t ${purpleColour} -o <so> ${endColour} ${grayColour}  Buscar máquinas por so ${endColour}"
 	echo -e "\t ${purpleColour} -u  ${endColour} ${grayColour} Actualizar el archivo de referencia ${endColour}"
 	echo -e "\t ${purpleColour} -h ${endColour} ${grayColour} Mostrar panel de ayuda ${endColour} \n "
 
@@ -94,9 +97,56 @@ function searchIP(){
 	ipadd="$1";
 	echo -e "\n ${yellowColour}[+]${endColour} ${grayColour}Searching machine with IP Add: $ipadd ${endColour} \n";
 	sleep 1;
-	machinename="$( grep "ip: \"$ipadd\"" bundle.js -B 3 | head -n 1 | awk '{print$2}' | sed 's/[",]//g')"
+	machinename="$( grep "ip: \"$ipadd\"" bundle.js -B 3 | grep "name: " | awk '{print$2}' | sed 's/[",]//g')"
+	if [[ -z "$machinename" ]]; then 
+		echo -e "\n ${redColour} No existe ninguna máquina con la IP: $ipadd  ${endColour}"
+		return 1;
+	fi
 	searchMachine $machinename
 }
+
+function searchYT(){
+	machinename="$1";
+	if machine_exist $1; then 
+		echo "The machine does not exist"
+	else 
+	        echo -e "\n ${yellowColour}[+]${endColour} ${grayColour}Searching youtube link for machine: $machinename ${endColour} \n";
+		#url="$(awk "/name: \"$machinename\"/,/youtube:/ { if ($1 ~ /youtube:/) print $NF }" ./bundle.js | sed 's/[",]//g')";	
+		url="$(awk "/name: \"$machinename\"/,/youtube:/" bundle.js | tail -1 | awk 'NF{print$NF}' | sed 's/[",]//g')"
+		echo -e "\n ${yellowColour}[+]${endColour} ${grayColour}Youtube URL : $url ${endColour} \n";
+	fi
+}
+
+function machine_exist(){
+	name="$(awk "/name: \"$1\"/" bundle.js)"
+	if [[ -z name  ]]; then #Si la maquina existe
+		return 1;
+	else 
+		return 0;
+	fi
+}
+
+function filter_os(){
+	so=$1
+	machines="$(grep "so: \"$1\"" -B 5 bundle.js | grep name | awk 'NF{print$NF}' | tr -d '"' | tr -d ',' | column)"
+	if [[ -z $machines  ]]; then
+		echo -e "\n ${redColour} No existe ninguna máquina con el os: $so  ${endColour}"
+	else 	
+		echo -e "\n ${yellowColour}[+]${endColour} ${grayColour} Se encontraron las máquinas con os: $so: \n $machines ${endColour} \n";
+	fi
+
+}
+
+function filter_diff(){
+	diff=$1
+	machines="$(grep "dificultad: \"$diff\"" -B 5 bundle.js | grep name | awk 'NF{print$NF}' | tr -d '"' | tr -d ',' | column)"
+	if [[ -z $machines  ]]; then
+		echo -e "\n ${redColour} No existe ninguna máquina con dificultad: $diff  ${endColour}"
+	else 	
+		echo -e "\n ${yellowColour}[+]${endColour} ${grayColour} Se encontraron las máquinas con dificultad: $diff: \n $machines ${endColour} \n";
+	fi
+}
+
 
 #Indicadores
 declare -i parameter_counter=0 #entero declarado en 0
@@ -105,12 +155,15 @@ declare temp_location="htbmachines_bundle"
 mkdir -p "/tmp/$temp_location"
 #Menu de inputs viables
 #: para listar varios
-while getopts "n:i:hu" arg; do
+while getopts "n:i:y:o:d:hu" arg; do
 	case $arg in
 		n) machineName=$OPTARG; let parameter_counter+=1;;
 		h) ;; #Indicamos la funcion a llamar
 		u) let parameter_counter+=2;;
 		i) ipadd=$OPTARG; let parameter_counter+=3;; #Caracteristica de la maquina, para mostrar todas las que hagan match
+		y) machineName=$OPTARG; let parameter_counter+=4;; 
+		o) so=$OPTARG; let parameter_counter+=5;; 
+		d) difficulty=$OPTARG; let parameter_counter+=6;; 
 	esac
 done
 
@@ -120,6 +173,12 @@ elif [ $parameter_counter -eq 2  ]; then
 	updatejsbundle;
 elif [ $parameter_counter -eq 3  ]; then
 	searchIP $ipadd; #Pensar como hacerlo como lista para poner varios filtros a la vez
+elif [ $parameter_counter -eq 4  ]; then
+	searchYT $machineName ; 
+elif [ $parameter_counter -eq 5  ]; then
+	filter_os $so ;
+elif [ $parameter_counter -eq 6  ]; then
+	filter_diff $difficulty ;
 else
 	helpPanel;
 fi
