@@ -128,9 +128,11 @@ function machine_exist(){
 
 function filter_os(){
 	so=$1
+	#machines="$(grep "so: \"$1\"" -B 5 bundle.js | grep name | awk 'NF{print$NF}' | tr -d '"' | tr -d ',' | column)"
 	machines="$(grep "so: \"$1\"" -B 5 bundle.js | grep name | awk 'NF{print$NF}' | tr -d '"' | tr -d ',' | column)"
 	if [[ -z $machines  ]]; then
 		echo -e "\n ${redColour} No existe ninguna máquina con el os: $so  ${endColour}"
+		return 1;
 	else 	
 		echo -e "\n ${yellowColour}[+]${endColour} ${grayColour} Se encontraron las máquinas con os: $so: \n $machines ${endColour} \n";
 	fi
@@ -142,11 +144,20 @@ function filter_diff(){
 	machines="$(grep "dificultad: \"$diff\"" -B 5 bundle.js | grep name | awk 'NF{print$NF}' | tr -d '"' | tr -d ',' | column)"
 	if [[ -z $machines  ]]; then
 		echo -e "\n ${redColour} No existe ninguna máquina con dificultad: $diff  ${endColour}"
+		return 1;
 	else 	
 		echo -e "\n ${yellowColour}[+]${endColour} ${grayColour} Se encontraron las máquinas con dificultad: $diff: \n $machines ${endColour} \n";
 	fi
 }
 
+function filter_diff_os(){	
+	diff=$1
+	so=$2
+	echo -e "\n Se buscaran las maquinas con dificultad : $diff y so: $so";
+	a="$(filter_os $so | xargs -n1)"
+	b=$(filter_diff $diff | xargs -n1);
+	echo "$a" | grep -Fxf <(echo "$b")
+}
 
 #Indicadores
 declare -i parameter_counter=0 #entero declarado en 0
@@ -179,6 +190,8 @@ elif [ $parameter_counter -eq 5  ]; then
 	filter_os $so ;
 elif [ $parameter_counter -eq 6  ]; then
 	filter_diff $difficulty ;
+elif [ $parameter_counter -eq 11  ]; then #Se filtra por os y dificultad a la vez
+	filter_diff_os $difficulty $so;
 else
 	helpPanel;
 fi
